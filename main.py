@@ -82,6 +82,11 @@ for txt in lst_txt_dir:
                                     dic_xls[cvh][9] = round(dic_selic[data_ref][1] / 100, 6)
 
     dic_efd_c.clear()
+    filename = "".join(["./relatorio",data_ref,".xlsx"])
+    data = pd.DataFrame.from_dict(dic_xls, orient='index',
+                                  columns=["CNPJ", "DATA REF", "VL ICMS", "VL PIS", "JUrOS PIS", "SOMA PIS + JUROS",
+                                           "VL COFINS", "JUROS COFINS", "SOMA PIS + JUROS", 'Taxa Selic'])
+    data.to_excel(filename)
     print("Tempo do Arquivo: ", datetime.now() - start)
 
 filename = "./relatorio.xlsx"
