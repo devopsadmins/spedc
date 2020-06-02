@@ -1,5 +1,6 @@
 from util import f_monta_hirarquia_efd_c
 from util import ler_diretorio_txt
+from util import ler_diretorio_txt_recursivo
 from util import mapear_efd_c
 from util import converte_para_valor
 
@@ -10,10 +11,11 @@ from datetime import datetime
 pip install pandas
 pip install openpyxl
 """
-diretorio = 'C:/VALBAGS/OneDrive - De Biasi Consultoria Tributária S S/CBRS/EFD-Contribuições/2017/'
+diretorio = 'C:/VALBAGS/OneDrive - De Biasi Consultoria Tributária S S/CBRS/EFD-Contribuições/'
+#diretorio = "./sped"
 start = datetime.now()
 print("Mapeando diretório com TXT")
-lst_txt_dir = ler_diretorio_txt('./sped/')  # Diretório de leitura
+lst_txt_dir = ler_diretorio_txt_recursivo(diretorio)  # Diretório de leitura
 dic_nivel_efd_c = f_monta_hirarquia_efd_c('hirarquia_efd_c.txt')  # arquivo de hierarquia - NÃO ALTERAR
 dic_selic = f_monta_hirarquia_efd_c('selic.txt',
                                     False)  # Tabela SELIC para calculo de Juros - Atualizar no mes corrente via EXCEL
@@ -35,14 +37,15 @@ reg_neto = 'C170'  # FALTA FILTROS DO CFOP
 
 for txt in lst_txt_dir:
     print("Lendo TXT:", txt)
+    dic_efd_c = lst_filtro_am = lst_filtro_ibge = []
+
     dic_efd_c, lst_filtro_am, lst_filtro_ibge = mapear_efd_c(txt, dic_nivel_efd_c)
     print("Tempo do Arquivo: ", datetime.now() - start)
     for cnpj_data_ref in dic_efd_c:
         cnpj, data_ref = cnpj_data_ref.split('|')
         if reg in dic_efd_c[cnpj_data_ref]:
             for id in dic_efd_c[cnpj_data_ref][reg]:
-                #cnpj_c010 = dic_efd_c[cnpj_data_ref][reg][id]['R'][2]
-
+                cnpj_c010 = dic_efd_c[cnpj_data_ref][reg][id]['R'][2]
 
                 # para filtrar cnpj constante na tabela filtrada no "util.py" do AM
                 if reg_filho in dic_efd_c[cnpj_data_ref][reg][id]['F']:
@@ -52,40 +55,39 @@ for txt in lst_txt_dir:
                         if indemit_c100 == '0' and codpart_c100 in lst_filtro_ibge:
                             for id_neto in dic_efd_c[cnpj_data_ref][reg_filho][id_filho]['F'][reg_neto]:
                                 ls = dic_efd_c[cnpj_data_ref][reg_neto][id_neto]['R']
-                                cfop = ls[11]
+                                cfop = ls[0]
                                 # checa lista de CFOP e faz os calculos
                                 if cfop in lst_cfop:
-                                    vl_icms = converte_para_valor(ls[15])
-                                    alq_pis = converte_para_valor(ls[27]) / 100
-                                    vl_pis = round(vl_icms * alq_pis, 2) if vl_icms > 0 else 0
-                                    alq_cofins = converte_para_valor(ls[33]) / 100
-                                    vl_cofins = round(vl_icms * alq_cofins, 2) if vl_icms > 0 else 0
+                                    vl_icms = converte_para_valor(ls[1])
+                                    alq_pis = converte_para_valor(ls[2]) / 100
+                                    vl_pis = round(vl_icms * alq_pis, 6) if vl_icms > 0 else 0
+                                    alq_cofins = converte_para_valor(ls[3]) / 100
+                                    vl_cofins = round(vl_icms * alq_cofins, 6) if vl_icms > 0 else 0
                                     # para criar a estrutura de saída
-                                    if cnpj_data_ref not in dic_xls:
+                                    cvh = cnpj_data_ref + "_" + cnpj_c010
+                                    if cvh not in dic_xls:
                                         "cnpj,data_ref, vl_icms, vl_pis, vl_cofins,calc_juros_pis,calc_juros_cofins,"
-                                        dic_xls[cnpj_data_ref] = [cnpj, data_ref, 0, 0, 0, 0, 0, 0, 0]
+                                        dic_xls[cvh] = [cnpj_c010, data_ref, 0, 0, 0, 0, 0, 0, 0, 0]
 
-                                    calc_juros_cofins = round(vl_cofins * dic_selic[data_ref][1] / 100, 2)
-                                    calc_juros_pis = round(vl_pis * dic_selic[data_ref][1] / 100, 2)
+                                    calc_juros_cofins = round(vl_cofins * dic_selic[data_ref][1] / 100, 6)
+                                    calc_juros_pis = round(vl_pis * dic_selic[data_ref][1] / 100, 6)
 
-                                    dic_xls[cnpj_data_ref][2] += vl_icms
-                                    dic_xls[cnpj_data_ref][3] += vl_pis
-                                    dic_xls[cnpj_data_ref][4] += vl_cofins
-                                    dic_xls[cnpj_data_ref][5] += calc_juros_pis
-                                    dic_xls[cnpj_data_ref][6] += calc_juros_cofins
-                                    dic_xls[cnpj_data_ref][7] += vl_pis + calc_juros_pis
-                                    dic_xls[cnpj_data_ref][8] += vl_cofins + calc_juros_cofins
+                                    dic_xls[cvh][2] += vl_icms
+                                    dic_xls[cvh][3] += vl_pis
+                                    dic_xls[cvh][4] += calc_juros_pis
+                                    dic_xls[cvh][5] += vl_pis + calc_juros_pis
+                                    dic_xls[cvh][6] += vl_cofins
+                                    dic_xls[cvh][7] += calc_juros_cofins
+                                    dic_xls[cvh][8] += vl_cofins + calc_juros_cofins
+                                    dic_xls[cvh][9] = round(dic_selic[data_ref][1] / 100, 6)
 
     dic_efd_c.clear()
     print("Tempo do Arquivo: ", datetime.now() - start)
 
 filename = "./relatorio.xlsx"
 data = pd.DataFrame.from_dict(dic_xls, orient='index',
-                              columns=["cnpj", "data_ref", "vl_icms", "vl_pis",
-                                       "vl_cofins",
-                                       "calc_juros_pis", "calc_juros_cofins",
-                                       "Soma Pis+Juros",
-                                       "Soma Cofins + Juros"])
+                              columns=["CNPJ", "DATA REF", "VL ICMS", "VL PIS", "JUrOS PIS", "SOMA PIS + JUROS",
+                                       "VL COFINS", "JUROS COFINS", "SOMA PIS + JUROS", 'Taxa Selic'])
 data.to_excel(filename)
 
 print("Tempo total de processamento: ", datetime.now() - start)
