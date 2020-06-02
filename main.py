@@ -3,6 +3,7 @@ from util import ler_diretorio_txt
 from util import ler_diretorio_txt_recursivo
 from util import mapear_efd_c
 from util import converte_para_valor
+import sys
 
 import pandas as pd
 from datetime import datetime
@@ -11,10 +12,11 @@ from datetime import datetime
 pip install pandas
 pip install openpyxl
 """
-diretorio = 'C:/VALBAGS/OneDrive - De Biasi Consultoria Tributária S S/CBRS/EFD-Contribuições/'
-#diretorio = "./sped"
+print(sys.argv[1])
+diretorio = "C:/VALBAGS/OneDrive - De Biasi Consultoria Tributária S S/CBRS/EFD-Contribuições/" + sys.argv[1] + '/'
+# diretorio = "./sped"
 start = datetime.now()
-print("Mapeando diretório com TXT")
+print("Mapeando diretório com TXT: ", diretorio)
 lst_txt_dir = ler_diretorio_txt_recursivo(diretorio)  # Diretório de leitura
 dic_nivel_efd_c = f_monta_hirarquia_efd_c('hirarquia_efd_c.txt')  # arquivo de hierarquia - NÃO ALTERAR
 dic_selic = f_monta_hirarquia_efd_c('selic.txt',
@@ -82,7 +84,7 @@ for txt in lst_txt_dir:
                                     dic_xls[cvh][9] = round(dic_selic[data_ref][1] / 100, 6)
 
     dic_efd_c.clear()
-    filename = "".join(["./relatorio",data_ref,".xlsx"])
+    filename = "".join(["./relatorio", data_ref, sys.argv[1], "-.xlsx"])
     data = pd.DataFrame.from_dict(dic_xls, orient='index',
                                   columns=["CNPJ", "DATA REF", "VL ICMS", "VL PIS", "JUrOS PIS", "SOMA PIS + JUROS",
                                            "VL COFINS", "JUROS COFINS", "SOMA PIS + JUROS", 'Taxa Selic'])
