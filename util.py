@@ -13,6 +13,7 @@ def ler_diretorio_txt_recursivo(diretorio='efd'):
             _lst_txt.append(join(root, filename))
     return _lst_txt
 
+
 def ler_diretorio_txt(diretorio='efd-c'):
     _lst_txt = []
     for txt in listdir(diretorio):
@@ -52,6 +53,7 @@ def converte_para_valor(valor, qtd_decimais=2):
             pass
         return valor
 
+
 def mapear_efd_c(txt, dic_nivel):
     _dic_efd_c = {}
     lst_filtro_am = []
@@ -61,7 +63,7 @@ def mapear_efd_c(txt, dic_nivel):
     # último registro dos selecionados deve ser o que finalizará a leitura
     ler_registros = ['0000', '0001', '0140', '0150', 'C001', 'C010', 'C100', 'C170', 'C190', 'M001', 'M200', 'M210',
                      'M220', 'M400', 'M410', 'M600', 'M610', 'M620', 'M990']
-    ler_registros = ['0000', '0001', '0140', '0150', 'C001', 'C010', 'C100', 'C170', 'C190', 'C990']
+    ler_registros = ['0000', '0001', '0140', '0150', '0200', 'C001', 'C010', 'C100', 'C170', 'C190', 'C990']
 
     with open(txt, 'r', encoding=__CODEC_PADRAO__) as open_arquivo_txt:
         numero_linha = 0
@@ -119,16 +121,47 @@ def mapear_efd_c(txt, dic_nivel):
                     _dic_efd_c[cnpj_data_ref]['COD_PART'][ent] = {}
                 _dic_efd_c[cnpj_data_ref]['COD_PART'][ent][ls[2]] = ls
 
-            # if reg == '0200':
-            #     ls[2] = str(ls[2])
-            #     if ent not in _dic_efd_c[cnpj_data_ref]['COD_ITEM']:
-            #         _dic_efd_c[cnpj_data_ref]['COD_ITEM'][ent] = {}
-            #     _dic_efd_c[cnpj_data_ref]['COD_ITEM'][ent][ls[2]] = ls
+            if reg == '0200':
+                ls[2] = str(ls[2])
+                if ent not in _dic_efd_c[cnpj_data_ref]['COD_ITEM']:
+                    _dic_efd_c[cnpj_data_ref]['COD_ITEM'][ent] = {}
+                _dic_efd_c[cnpj_data_ref]['COD_ITEM'][ent][ls[2]] = ls
+                _dic_efd_c[cnpj_data_ref]['COD_ITEM'][ent][ls[2]] = ls
 
             ls[0] = id_pai
 
+            """
+            C170
+           0 cod_item 3
+           1 descr_compl 4
+           2 vl_item 7
+           3 cfop 11
+            
+           4 cst_pis 25
+           5 vl_bc_pis 26
+           6 aliq_pis 27
+           7 quant_bc_pis 28
+           8 vl_pis 30
+            
+           9 cst_cofins 31
+           10 vl_bc_cofins 32
+           11 aliq_cofins 33
+           12 quant_bc_cofins 34
+           13 vl_cofins 36
+            
+            """
+
+            # C100
+            # Cod_cliente
+            # CNPJ
+            # CPF
+            # Cod_munic
+            # UF
+
             if reg == "C170":
-                _dic_efd_c[cnpj_data_ref][reg][numero_linha]['R'] = [ls[11], ls[15], ls[27], ls[33]]
+                _dic_efd_c[cnpj_data_ref][reg][numero_linha]['R'] = [ls[3], ls[4], ls[7], ls[11], ls[25], ls[26],
+                                                                     ls[27], ls[28], ls[30], ls[31], ls[32], ls[33],
+                                                                     ls[34], ls[36]]
             else:
                 _dic_efd_c[cnpj_data_ref][reg][numero_linha]['R'] = ls
 

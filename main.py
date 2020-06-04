@@ -3,6 +3,8 @@ from util import ler_diretorio_txt
 from util import ler_diretorio_txt_recursivo
 from util import mapear_efd_c
 from util import converte_para_valor
+import mysql.connector
+
 import sys
 
 import pandas as pd
@@ -12,8 +14,12 @@ from datetime import datetime
 pip install pandas
 pip install openpyxl
 """
-print(sys.argv[1])
-diretorio = "C:/VALBAGS/OneDrive - De Biasi Consultoria Tributária S S/CBRS/EFD-Contribuições/" + sys.argv[1] + '/'
+try:
+    final = sys.argv[1]
+except:
+    final = "TESTE"
+
+diretorio = "C:/VALBAGS/OneDrive - De Biasi Consultoria Tributária S S/CBRS/EFD-Contribuições/" + final + '/'
 # diretorio = "./sped"
 start = datetime.now()
 print("Mapeando diretório com TXT: ", diretorio)
@@ -40,7 +46,7 @@ reg_neto = 'C170'  # FALTA FILTROS DO CFOP
 for txt in lst_txt_dir:
     print("Lendo TXT:", txt)
     dic_efd_c = lst_filtro_am = lst_filtro_ibge = []
-
+    linha = 0
     dic_efd_c, lst_filtro_am, lst_filtro_ibge = mapear_efd_c(txt, dic_nivel_efd_c)
     print("Tempo do Arquivo: ", datetime.now() - start)
     for cnpj_data_ref in dic_efd_c:
@@ -49,6 +55,7 @@ for txt in lst_txt_dir:
             for id in dic_efd_c[cnpj_data_ref][reg]:
                 cnpj_c010 = dic_efd_c[cnpj_data_ref][reg][id]['R'][2]
 
+                # try:
                 # para filtrar cnpj constante na tabela filtrada no "util.py" do AM
                 if reg_filho in dic_efd_c[cnpj_data_ref][reg][id]['F']:
                     for id_filho in dic_efd_c[cnpj_data_ref][reg][id]['F'][reg_filho]:
@@ -57,45 +64,99 @@ for txt in lst_txt_dir:
                         if indemit_c100 == '0' and codpart_c100 in lst_filtro_ibge:
                             for id_neto in dic_efd_c[cnpj_data_ref][reg_filho][id_filho]['F'][reg_neto]:
                                 ls = dic_efd_c[cnpj_data_ref][reg_neto][id_neto]['R']
-                                cfop = ls[0]
+                                cfop = ls[3]
                                 # checa lista de CFOP e faz os calculos
                                 if cfop in lst_cfop:
-                                    vl_icms = converte_para_valor(ls[1])
-                                    alq_pis = converte_para_valor(ls[2]) / 100
-                                    vl_pis = round(vl_icms * alq_pis, 6) if vl_icms > 0 else 0
-                                    alq_cofins = converte_para_valor(ls[3]) / 100
-                                    vl_cofins = round(vl_icms * alq_cofins, 6) if vl_icms > 0 else 0
+                                    try:
+                                        produto = dic_efd_c[cnpj_data_ref]['COD_ITEM'][cnpj][ls[0]]
+                                    except:
+                                        produto = []
+
                                     # para criar a estrutura de saída
                                     cvh = cnpj_data_ref + "_" + cnpj_c010
-                                    if cvh not in dic_xls:
-                                        "cnpj,data_ref, vl_icms, vl_pis, vl_cofins,calc_juros_pis,calc_juros_cofins,"
-                                        dic_xls[cvh] = [cnpj_c010, data_ref, 0, 0, 0, 0, 0, 0, 0, 0]
+                                    # if cvh not in dic_xls:
+                                    #     dic_xls[0] = [cnpj_data_ref, cnpj_c010, data_ref, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                    #                   0, 0, 0,
+                                    #                   0, 0, 0, 0]
+                                    dic_xls[linha] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+                                    i = 0
+                                    """
+                                                0 cod_item 3
+                                               1 descr_compl 4
+                                               2 vl_item 7
+                                               3 cfop 11
 
-                                    calc_juros_cofins = round(vl_cofins * dic_selic[data_ref][1] / 100, 6)
-                                    calc_juros_pis = round(vl_pis * dic_selic[data_ref][1] / 100, 6)
+                                               4 cst_pis 25
+                                               5 vl_bc_pis 26
+                                               6 aliq_pis 27
+                                               7 quant_bc_pis 28
+                                               8 vl_pis 30
 
-                                    dic_xls[cvh][2] += vl_icms
-                                    dic_xls[cvh][3] += vl_pis
-                                    dic_xls[cvh][4] += calc_juros_pis
-                                    dic_xls[cvh][5] += vl_pis + calc_juros_pis
-                                    dic_xls[cvh][6] += vl_cofins
-                                    dic_xls[cvh][7] += calc_juros_cofins
-                                    dic_xls[cvh][8] += vl_cofins + calc_juros_cofins
-                                    dic_xls[cvh][9] = round(dic_selic[data_ref][1] / 100, 6)
+                                               9 cst_cofins 31
+                                               10 vl_bc_cofins 32
+                                               11 aliq_cofins 33
+                                               12 quant_bc_cofins 34
+                                               13 vl_cofins 36
+                                               """
+                                    dic_xls[linha][0] = cnpj_data_ref
+                                    dic_xls[linha][1] = cnpj_c010
+                                    dic_xls[linha][2] = data_ref
+                                    dic_xls[linha][i + 3] = ls[i]
+                                    i += 1
+                                    dic_xls[linha][i + 3] = ls[i]
+                                    i += 1
+                                    dic_xls[linha][i + 3] = ls[i]
+                                    i += 1
+                                    dic_xls[linha][i + 3] = ls[i]
+                                    i += 1
+                                    dic_xls[linha][i + 3] = ls[i]
+                                    i += 1
+                                    dic_xls[linha][i + 3] = ls[i]
+                                    i += 1
+                                    dic_xls[linha][i + 3] = ls[i]
+                                    i += 1
+                                    dic_xls[linha][i + 3] = ls[i]
+                                    i += 1
+                                    dic_xls[linha][i + 3] = ls[i]
+                                    i += 1
+                                    dic_xls[linha][i + 3] = ls[i]
+                                    i += 1
+                                    dic_xls[linha][i + 3] = ls[i]
+                                    i += 1
+                                    dic_xls[linha][i + 3] = ls[i]
+                                    i += 1
+                                    dic_xls[linha][i + 3] = ls[i]
+                                    i += 1
+                                    dic_xls[linha][i + 3] = ls[i]
+                                    i += 1
+                                    dic_xls[linha][i + 3] = produto[3]
+                                    i += 1
+                                    dic_xls[linha][i + 3] = produto[7]
+                                    i += 1
+                                    dic_xls[linha][i + 3] = produto[8]
+                                    i += 1
+                                    linha += 1
+                #
+                # except:
+                #     print("Erro: ", sys.exc_info()[0],sys.exc_info()[3])
 
     dic_efd_c.clear()
-    filename = "".join(["./relatorio", data_ref, sys.argv[1], "-.xlsx"])
+    filename = "".join(["./relatorio-", data_ref, "-", final, ".xlsx"])
     data = pd.DataFrame.from_dict(dic_xls, orient='index',
-                                  columns=["CNPJ", "DATA REF", "VL ICMS", "VL PIS", "JUrOS PIS", "SOMA PIS + JUROS",
-                                           "VL COFINS", "JUROS COFINS", "SOMA PIS + JUROS", 'Taxa Selic'])
+                                  columns=["CHV", "CNPJ_C010", "DATA", "cod_item", "desc_item", "vl_item", "CFOP",
+                                           "CST_PIS", "VL_BC_PIS", "ALIQ_PIS", "QUANT_BC_PIS", "VL_PIS", "CST_COFINS",
+                                           "VL_BC_COFINS", "ALI_COFINS", "QUANT_BC_COFINS",'VL_CONFIS', "DESC_0200",'TIOPO_ITEM','COD_NCM'])
+
+
     data.to_excel(filename)
     print("Tempo do Arquivo: ", datetime.now() - start)
 
-filename = "./relatorio.xlsx"
-data = pd.DataFrame.from_dict(dic_xls, orient='index',
-                              columns=["CNPJ", "DATA REF", "VL ICMS", "VL PIS", "JUrOS PIS", "SOMA PIS + JUROS",
-                                       "VL COFINS", "JUROS COFINS", "SOMA PIS + JUROS", 'Taxa Selic'])
-data.to_excel(filename)
+# filename = "./relatorio.xlsx"
+# data = pd.DataFrame.from_dict(dic_xls, orient='index',
+#                               columns=['0', '1', '2', '2', '2', '2', '2', '2', '2', '2', '2', '2', '2', '2', '2', '2',
+#                                        '2',
+#                                        '2', '2'])
+# data.to_csv(filename)
 
 print("Tempo total de processamento: ", datetime.now() - start)
 print('fim')

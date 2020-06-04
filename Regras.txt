@@ -1,0 +1,27 @@
+Filtrar C170 pela lista
+CFOP
+    Lista OK
+
+Incluir
+CST PIS
+CST COFINS
+Cod Produto
+Descr_Compl
+VL_ITEM
+VL_BC_PIS
+Qaunt_BC_PIS
+VL_PIS
+VL_COFINS
+C100
+Cod_cliente
+CNPJ
+CPF
+Cod_munic
+UF
+
+
+
+Planilhas
+1. CNPJ Origem AM
+2. CNPJ Destino 13,14,15
+
