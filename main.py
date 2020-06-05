@@ -2,13 +2,25 @@ from util import f_monta_hirarquia_efd_c
 from util import ler_diretorio_txt
 from util import ler_diretorio_txt_recursivo
 from util import mapear_efd_c
-from util import converte_para_valor
 import mysql.connector
-
 import sys
-
 import pandas as pd
 from datetime import datetime
+import itertools as it
+
+
+def InserirDB():
+    cnx = mysql.connector.connect(user='root', password='Comum_01',
+                                  host='127.0.0.1',
+                                  database='cbrs')
+    mycursor = cnx.cursor()
+
+    print(dict(it.islice(dic_xls, 1, 1000)))
+    print("Gerado Dict: ", datetime.now() - start)
+
+    # cnx.commit();
+    # print("Numero:", mycursor.rowcount)
+
 
 """
 pip install pandas
@@ -19,7 +31,7 @@ try:
 except:
     final = "TESTE"
 
-diretorio = "C:/VALBAGS/OneDrive - De Biasi Consultoria Tributária S S/CBRS/EFD-Contribuições/" + final + '/'
+diretorio = "D:/freela/OneDrive - De Biasi Consultoria Tributária S S/CBRS/EFD-Contribuições/" + final + '/'
 # diretorio = "./sped"
 start = datetime.now()
 print("Mapeando diretório com TXT: ", diretorio)
@@ -27,6 +39,7 @@ lst_txt_dir = ler_diretorio_txt_recursivo(diretorio)  # Diretório de leitura
 dic_nivel_efd_c = f_monta_hirarquia_efd_c('hirarquia_efd_c.txt')  # arquivo de hierarquia - NÃO ALTERAR
 dic_selic = f_monta_hirarquia_efd_c('selic.txt',
                                     False)  # Tabela SELIC para calculo de Juros - Atualizar no mes corrente via EXCEL
+dic_ibge = f_monta_hirarquia_efd_c('ibge1.csv', False)  # tabela de estados IBGE
 
 dic_xls = {}  # Saída de Dados
 lst_cfop = ["5101", "5115", "1201", "5102", "5116", "1202", "5103", "5117", "1203", "5104", "5118", "1204", "5105",
@@ -61,7 +74,12 @@ for txt in lst_txt_dir:
                     for id_filho in dic_efd_c[cnpj_data_ref][reg][id]['F'][reg_filho]:
                         indemit_c100 = dic_efd_c[cnpj_data_ref][reg_filho][id_filho]['R'][3]
                         codpart_c100 = dic_efd_c[cnpj_data_ref][reg_filho][id_filho]['R'][4]
+                        nomepart = dic_efd_c[cnpj_data_ref]['COD_PART'][codpart_c100][3]
+                        cnpjpart = dic_efd_c[cnpj_data_ref]['COD_PART'][codpart_c100][5]
+                        cpfpart = dic_efd_c[cnpj_data_ref]['COD_PART'][codpart_c100][6]
+                        cod_munic_part = dic_efd_c[cnpj_data_ref]['COD_PART'][codpart_c100][8]
                         if indemit_c100 == '0' and codpart_c100 in lst_filtro_ibge:
+
                             for id_neto in dic_efd_c[cnpj_data_ref][reg_filho][id_filho]['F'][reg_neto]:
                                 ls = dic_efd_c[cnpj_data_ref][reg_neto][id_neto]['R']
                                 cfop = ls[3]
@@ -136,17 +154,20 @@ for txt in lst_txt_dir:
                                     dic_xls[linha][i + 3] = produto[8]
                                     i += 1
                                     linha += 1
-                #
-                # except:
-                #     print("Erro: ", sys.exc_info()[0],sys.exc_info()[3])
+                                    sql = "INSERT INTO `cbrs`.`cbrs` (`CHV`, `CNPJ_C010`, `DATA`, `cod_item`, `desc_item`, `vl_item`, `CFOP`, `CST_PIS`, `VL_BC_PIS`, `ALIQ_PIS`, `QUANT_BC_PIS`, `VL_PIS`, `CST_COFINS`, `VL_BC_COFINS`, `ALI_COFINS`, `QUANT_BC_COFINS`, `VL_CONFIS`, `DESC_0200`, `TIOPO_ITEM`, `COD_NCM`) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"
+    InserirDB()
+
+    #
+    # except:
+    #     print("Erro: ", sys.exc_info()[0],sys.exc_info()[3])
 
     dic_efd_c.clear()
     filename = "".join(["./relatorio-", data_ref, "-", final, ".xlsx"])
     data = pd.DataFrame.from_dict(dic_xls, orient='index',
                                   columns=["CHV", "CNPJ_C010", "DATA", "cod_item", "desc_item", "vl_item", "CFOP",
                                            "CST_PIS", "VL_BC_PIS", "ALIQ_PIS", "QUANT_BC_PIS", "VL_PIS", "CST_COFINS",
-                                           "VL_BC_COFINS", "ALI_COFINS", "QUANT_BC_COFINS",'VL_CONFIS', "DESC_0200",'TIOPO_ITEM','COD_NCM'])
-
+                                           "VL_BC_COFINS", "ALI_COFINS", "QUANT_BC_COFINS", 'VL_CONFIS', "DESC_0200",
+                                           'TIOPO_ITEM', 'COD_NCM'])
 
     data.to_excel(filename)
     print("Tempo do Arquivo: ", datetime.now() - start)
