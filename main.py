@@ -10,10 +10,15 @@ import itertools as it
 
 
 def InserirDB():
+    sql = "INSERT INTO `cbrs`.`cbrs` (`CHV`, `CNPJ_C010`, `DATA`, `cod_item`, `desc_item`, `vl_item`, `CFOP`, `CST_PIS`, `VL_BC_PIS`, `ALIQ_PIS`, `QUANT_BC_PIS`, `VL_PIS`, `CST_COFINS`, `VL_BC_COFINS`, `ALI_COFINS`, `QUANT_BC_COFINS`, `VL_CONFIS`, `DESC_0200`, `TIOPO_ITEM`, `COD_NCM`" \
+          ",NOME_PART, CNPJ_PART, CPF_PART, COD_MUNIC_PART, MUNICIPIO) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,%s,%s,%s,%s,%s);"
     cnx = mysql.connector.connect(user='root', password='Comum_01',
                                   host='127.0.0.1',
                                   database='cbrs')
     mycursor = cnx.cursor()
+
+    params = list(dic_xls.items())
+    mycursor.executemany(sql, params)
 
     print(dict(it.islice(dic_xls, 1, 1000)))
     print("Gerado Dict: ", datetime.now() - start)
@@ -29,7 +34,7 @@ pip install openpyxl
 try:
     final = sys.argv[1]
 except:
-    final = "TESTE"
+    final = "2013"
 
 diretorio = "D:/freela/OneDrive - De Biasi Consultoria Tributária S S/CBRS/EFD-Contribuições/" + final + '/'
 # diretorio = "./sped"
@@ -39,7 +44,7 @@ lst_txt_dir = ler_diretorio_txt_recursivo(diretorio)  # Diretório de leitura
 dic_nivel_efd_c = f_monta_hirarquia_efd_c('hirarquia_efd_c.txt')  # arquivo de hierarquia - NÃO ALTERAR
 dic_selic = f_monta_hirarquia_efd_c('selic.txt',
                                     False)  # Tabela SELIC para calculo de Juros - Atualizar no mes corrente via EXCEL
-dic_ibge = f_monta_hirarquia_efd_c('ibge1.csv', False)  # tabela de estados IBGE
+dic_ibge = f_monta_hirarquia_efd_c('ibge.csv', False)  # tabela de estados IBGE
 
 dic_xls = {}  # Saída de Dados
 lst_cfop = ["5101", "5115", "1201", "5102", "5116", "1202", "5103", "5117", "1203", "5104", "5118", "1204", "5105",
@@ -74,10 +79,21 @@ for txt in lst_txt_dir:
                     for id_filho in dic_efd_c[cnpj_data_ref][reg][id]['F'][reg_filho]:
                         indemit_c100 = dic_efd_c[cnpj_data_ref][reg_filho][id_filho]['R'][3]
                         codpart_c100 = dic_efd_c[cnpj_data_ref][reg_filho][id_filho]['R'][4]
-                        nomepart = dic_efd_c[cnpj_data_ref]['COD_PART'][codpart_c100][3]
-                        cnpjpart = dic_efd_c[cnpj_data_ref]['COD_PART'][codpart_c100][5]
-                        cpfpart = dic_efd_c[cnpj_data_ref]['COD_PART'][codpart_c100][6]
-                        cod_munic_part = dic_efd_c[cnpj_data_ref]['COD_PART'][codpart_c100][8]
+                        try:
+                            nomepart = dic_efd_c[cnpj_data_ref]['COD_PART'][cnpj][codpart_c100][3]
+                            cnpjpart = dic_efd_c[cnpj_data_ref]['COD_PART'][cnpj][codpart_c100][5]
+                            cpfpart = dic_efd_c[cnpj_data_ref]['COD_PART'][cnpj][codpart_c100][6]
+                            cod_munic_part = dic_efd_c[cnpj_data_ref]['COD_PART'][cnpj][codpart_c100][8]
+                            municipio = dic_ibge[cod_munic_part][1]
+                            estado = dic_ibge[cod_munic_part][2]
+                        except:
+                            nomepart = "N/A"
+                            cnpjpart = "N/A"
+                            cpfpart = "N/A"
+                            cod_munic_part = "N/A"
+                            municipio = "N/A"
+                            estado = "N/A"
+
                         if indemit_c100 == '0' and codpart_c100 in lst_filtro_ibge:
 
                             for id_neto in dic_efd_c[cnpj_data_ref][reg_filho][id_filho]['F'][reg_neto]:
@@ -96,7 +112,8 @@ for txt in lst_txt_dir:
                                     #     dic_xls[0] = [cnpj_data_ref, cnpj_c010, data_ref, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                                     #                   0, 0, 0,
                                     #                   0, 0, 0, 0]
-                                    dic_xls[linha] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+                                    dic_xls[linha] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                                      0, 0, 0]
                                     i = 0
                                     """
                                                 0 cod_item 3
@@ -123,39 +140,53 @@ for txt in lst_txt_dir:
                                     i += 1
                                     dic_xls[linha][i + 3] = ls[i]
                                     i += 1
-                                    dic_xls[linha][i + 3] = ls[i]
+                                    dic_xls[linha][i + 3] = produto[3]  # descricao item
+
+                                    dic_xls[linha][i + 4] = produto[7]  # tipo_item
+
+                                    dic_xls[linha][i + 5] = produto[8]  # ncm
+
+                                    dic_xls[linha][i + 5] = ls[i]
                                     i += 1
-                                    dic_xls[linha][i + 3] = ls[i]
+                                    dic_xls[linha][i + 5] = ls[i]
                                     i += 1
-                                    dic_xls[linha][i + 3] = ls[i]
+                                    dic_xls[linha][i + 5] = ls[i]
                                     i += 1
-                                    dic_xls[linha][i + 3] = ls[i]
+                                    dic_xls[linha][i + 5] = ls[i]
                                     i += 1
-                                    dic_xls[linha][i + 3] = ls[i]
+                                    dic_xls[linha][i + 5] = ls[i]
                                     i += 1
-                                    dic_xls[linha][i + 3] = ls[i]
+                                    dic_xls[linha][i + 5] = ls[i]
                                     i += 1
-                                    dic_xls[linha][i + 3] = ls[i]
+                                    dic_xls[linha][i + 5] = ls[i]
                                     i += 1
-                                    dic_xls[linha][i + 3] = ls[i]
+                                    dic_xls[linha][i + 5] = ls[i]
                                     i += 1
-                                    dic_xls[linha][i + 3] = ls[i]
+                                    dic_xls[linha][i + 5] = ls[i]
                                     i += 1
-                                    dic_xls[linha][i + 3] = ls[i]
+                                    dic_xls[linha][i + 5] = ls[i]
                                     i += 1
-                                    dic_xls[linha][i + 3] = ls[i]
+                                    dic_xls[linha][i + 5] = ls[i]
                                     i += 1
-                                    dic_xls[linha][i + 3] = ls[i]
+                                    dic_xls[linha][i + 5] = ls[i]
                                     i += 1
-                                    dic_xls[linha][i + 3] = produto[3]
+                                    dic_xls[linha][i + 5] = ls[i]
                                     i += 1
-                                    dic_xls[linha][i + 3] = produto[7]
+
+                                    dic_xls[linha][i + 5] = nomepart
                                     i += 1
-                                    dic_xls[linha][i + 3] = produto[8]
+                                    dic_xls[linha][i + 5] = cnpjpart.join(cpfpart)
                                     i += 1
+                                    dic_xls[linha][i + 5] = cod_munic_part
+                                    i += 1
+                                    dic_xls[linha][i + 5] = estado
+                                    i += 1
+                                    dic_xls[linha][i + 5] = municipio
+                                    i += 1
+
                                     linha += 1
-                                    sql = "INSERT INTO `cbrs`.`cbrs` (`CHV`, `CNPJ_C010`, `DATA`, `cod_item`, `desc_item`, `vl_item`, `CFOP`, `CST_PIS`, `VL_BC_PIS`, `ALIQ_PIS`, `QUANT_BC_PIS`, `VL_PIS`, `CST_COFINS`, `VL_BC_COFINS`, `ALI_COFINS`, `QUANT_BC_COFINS`, `VL_CONFIS`, `DESC_0200`, `TIOPO_ITEM`, `COD_NCM`) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"
-    InserirDB()
+
+    # InserirDB()
 
     #
     # except:
@@ -164,12 +195,14 @@ for txt in lst_txt_dir:
     dic_efd_c.clear()
     filename = "".join(["./relatorio-", data_ref, "-", final, ".xlsx"])
     data = pd.DataFrame.from_dict(dic_xls, orient='index',
-                                  columns=["CHV", "CNPJ_C010", "DATA", "cod_item", "desc_item", "vl_item", "CFOP",
+                                  columns=["CHV", "CNPJ_C010", "DATA", "cod_item", "desc_item", "DESC_0200",
+                                           'TIOPO_ITEM', 'COD_NCM', "vl_item", "CFOP",
                                            "CST_PIS", "VL_BC_PIS", "ALIQ_PIS", "QUANT_BC_PIS", "VL_PIS", "CST_COFINS",
-                                           "VL_BC_COFINS", "ALI_COFINS", "QUANT_BC_COFINS", 'VL_CONFIS', "DESC_0200",
-                                           'TIOPO_ITEM', 'COD_NCM'])
+                                           "VL_BC_COFINS", "ALI_COFINS", "QUANT_BC_COFINS", 'VL_CONFIS', 'NOME_PART',
+                                           'CNPJ_PART_CPF_PART', 'COD_MUNIC_PART', 'MUNICIPIO'])
 
     data.to_excel(filename)
+    dic_xls.clear()
     print("Tempo do Arquivo: ", datetime.now() - start)
 
 # filename = "./relatorio.xlsx"
